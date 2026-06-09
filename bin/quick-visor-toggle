@@ -1,3 +1,0 @@
-#!/bin/sh
-# Toggle the quick-visor overlay from a compositor keybinding.
-exec quickshell ipc -p /usr/share/quickshell/quick-visor/shell.qml call quick-visor toggle

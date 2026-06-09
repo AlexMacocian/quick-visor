@@ -7,7 +7,7 @@ import Quickshell.Io
 QtObject {
     id: root
 
-    property bool visible: false
+    property bool visible: true
     property int selectedIndex: 0
     property var monitors: []
     property var arrangedPositions: ({})
@@ -24,6 +24,7 @@ QtObject {
 
     function close() {
         visible = false;
+        Qt.callLater(Qt.quit);
     }
 
     function toggle() {

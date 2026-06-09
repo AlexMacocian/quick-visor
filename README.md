@@ -10,23 +10,22 @@ Install from the AUR:
 paru -S quick-visor
 ```
 
-Start the resident Quickshell instance once per session:
+Launch the display layout window:
 
-```conf
-exec-once = quick-visor
+```sh
+quick-visor
 ```
 
-Bind a key to toggle the overlay:
+Optionally bind a key to launch it:
 
 ```conf
-bind = SUPER, M, exec, quick-visor-toggle
+bind = SUPER, D, exec, quick-visor
 ```
 
 For local development, run directly from the clone:
 
 ```sh
 quickshell -n -p qml/shell.qml
-quickshell ipc -p qml/shell.qml call quick-visor toggle
 ```
 
 ## Configuration
