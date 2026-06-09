@@ -154,6 +154,7 @@ FloatingWindow {
                         required property var modelData
 
                         readonly property bool selected: VisorService.selectedIndex === index
+                        readonly property bool enabledDisplay: VisorService.monitorEnabled(modelData)
                         property real pressSceneX: 0
                         property real pressSceneY: 0
                         property real pressLogicalX: 0
@@ -165,8 +166,9 @@ FloatingWindow {
                         height: Math.max(64, VisorService.monitorHeight(modelData) * workspace.layoutScale)
                         radius: Theme.radius / 1.5
                         color: dragArea.containsMouse ? Theme.overlayWeak : Theme.background
-                        border.color: selected ? Theme.accent : Theme.border
+                        border.color: selected ? Theme.accent : (enabledDisplay ? Theme.border : Theme.warning)
                         border.width: selected ? 3 : 1
+                        opacity: enabledDisplay ? 1.0 : 0.55
 
                         Rectangle {
                             anchors.fill: parent
@@ -223,6 +225,27 @@ FloatingWindow {
                                 font.pixelSize: Math.max(10, Theme.fontSize * 0.8)
                                 horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
+                            }
+                        }
+
+                        Rectangle {
+                            visible: !monitorCard.enabledDisplay
+                            anchors.centerIn: parent
+                            implicitWidth: disabledLabel.implicitWidth + Theme.padding * 2
+                            implicitHeight: disabledLabel.implicitHeight + Theme.padding
+                            radius: implicitHeight / 2
+                            color: Theme.background
+                            border.color: Theme.warning
+                            border.width: 1
+
+                            Text {
+                                id: disabledLabel
+                                anchors.centerIn: parent
+                                text: "Disabled"
+                                color: Theme.warning
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Math.max(10, Theme.fontSize * 0.9)
+                                font.bold: true
                             }
                         }
 
@@ -285,7 +308,7 @@ FloatingWindow {
                 id: selectedPanel
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 112
+                Layout.preferredHeight: 132
                 visible: VisorService.selected !== null
                 color: Theme.overlayWeak
                 radius: Theme.radius
@@ -333,118 +356,236 @@ FloatingWindow {
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 4
-
-                        Text {
-                            text: "Refresh rate / mode"
-                            color: Theme.idle
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize * 0.85
-                        }
-
-                        ComboBox {
-                            id: modeCombo
-
-                            Layout.fillWidth: true
-                            model: VisorService.selected && Array.isArray(VisorService.selected.availableModes)
-                                ? VisorService.selected.availableModes
-                                : []
-                            currentIndex: VisorService.selectedModeIndex(VisorService.selected)
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize
-                            onActivated: index => {
-                                if (VisorService.selected && index >= 0) {
-                                    VisorService.setMonitorMode(VisorService.selected.name, model[index]);
-                                }
-                            }
-
-                            popup: Popup {
-                                y: modeCombo.height
-                                width: modeCombo.width
-                                implicitHeight: Math.min(modeList.contentHeight, 240)
-                                padding: 1
-
-                                background: Rectangle {
-                                    color: Theme.background
-                                    border.color: Theme.border
-                                    border.width: 1
-                                    radius: Theme.radius / 2
-                                }
-
-                                contentItem: ListView {
-                                    id: modeList
-
-                                    clip: true
-                                    implicitHeight: contentHeight
-                                    model: modeCombo.popup.visible ? modeCombo.delegateModel : null
-                                    currentIndex: modeCombo.highlightedIndex
-                                    boundsBehavior: Flickable.StopAtBounds
-                                    ScrollIndicator.vertical: ScrollIndicator {}
-                                }
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.preferredWidth: 180
-                        spacing: 4
-
-                        Text {
-                            text: "DPI / scale"
-                            color: Theme.idle
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize * 0.85
-                        }
+                        Layout.fillHeight: true
+                        spacing: Theme.spacing
 
                         RowLayout {
-                            spacing: Theme.spacing
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 30
+                            spacing: Theme.spacing * 1.5
 
-                            ActionButton {
-                                label: "-"
-                                enabled: VisorService.selected !== null
-                                onClicked: VisorService.adjustMonitorScale(VisorService.selected.name, -0.05)
+                            Text {
+                                Layout.preferredWidth: 170
+                                text: "Resolution / refresh"
+                                color: Theme.idle
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSize * 0.9
+                                verticalAlignment: Text.AlignVCenter
                             }
 
-                            TextField {
-                                id: scaleInput
+                            ComboBox {
+                                id: modeCombo
 
-                                Layout.preferredWidth: 70
-                                text: VisorService.selected ? String(Math.round(VisorService.monitorScale(VisorService.selected) * 100)) : ""
-                                enabled: VisorService.selected !== null
-                                color: Theme.foreground
-                                selectedTextColor: Theme.background
-                                selectionColor: Theme.accent
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                model: VisorService.selected && Array.isArray(VisorService.selected.availableModes)
+                                    ? VisorService.selected.availableModes
+                                    : []
+                                currentIndex: VisorService.selectedModeIndex(VisorService.selected)
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSize
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                validator: IntValidator { bottom: 50; top: 400 }
+                                contentItem: Text {
+                                    leftPadding: Theme.padding * 1.5
+                                    rightPadding: Theme.padding * 3
+                                    text: modeCombo.displayText
+                                    color: Theme.foreground
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize
+                                    verticalAlignment: Text.AlignVCenter
+                                    elide: Text.ElideRight
+                                }
+                                indicator: Text {
+                                    x: modeCombo.width - width - Theme.padding
+                                    y: modeCombo.topPadding + (modeCombo.availableHeight - height) / 2
+                                    text: modeCombo.popup.visible ? "▲" : "▼"
+                                    color: Theme.accent
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize * 0.75
+                                }
                                 background: Rectangle {
-                                    color: Theme.background
+                                    color: modeCombo.pressed ? Theme.overlayStrong : Theme.background
                                     radius: Theme.radius / 3
-                                    border.color: scaleInput.activeFocus ? Theme.accent : Theme.border
+                                    border.color: modeCombo.activeFocus ? Theme.accent : Theme.border
                                     border.width: 1
                                 }
-                                onEditingFinished: {
-                                    if (VisorService.selected && acceptableInput) {
-                                        VisorService.setMonitorScale(VisorService.selected.name, parseInt(text, 10) / 100);
+                                delegate: ItemDelegate {
+                                    width: modeCombo.width
+                                    height: Math.max(30, modeText.implicitHeight + Theme.padding)
+                                    highlighted: modeCombo.highlightedIndex === index
+
+                                    background: Rectangle {
+                                        color: highlighted ? Theme.overlayStrong : Theme.background
+                                        radius: Theme.radius / 3
+                                    }
+
+                                    contentItem: Text {
+                                        id: modeText
+                                        text: modelData
+                                        color: highlighted ? Theme.accent : Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                                onActivated: index => {
+                                    if (VisorService.selected && index >= 0) {
+                                        VisorService.setMonitorMode(VisorService.selected.name, model[index]);
+                                    }
+                                }
+
+                                popup: Popup {
+                                    y: modeCombo.height
+                                    width: modeCombo.width
+                                    implicitHeight: Math.min(modeList.contentHeight, 240)
+                                    padding: 1
+
+                                    background: Rectangle {
+                                        color: Theme.background
+                                        border.color: Theme.border
+                                        border.width: 1
+                                        radius: Theme.radius / 2
+                                    }
+
+                                    contentItem: ListView {
+                                        id: modeList
+
+                                        clip: true
+                                        implicitHeight: contentHeight
+                                        model: modeCombo.popup.visible ? modeCombo.delegateModel : null
+                                        currentIndex: modeCombo.highlightedIndex
+                                        boundsBehavior: Flickable.StopAtBounds
+                                        ScrollIndicator.vertical: ScrollIndicator {}
                                     }
                                 }
                             }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 30
+                            spacing: Theme.spacing * 1.5
 
                             Text {
-                                text: "%"
+                                Layout.preferredWidth: 170
+                                text: "DPI / scale"
                                 color: Theme.idle
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSize
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
+                                font.pixelSize: Theme.fontSize * 0.9
+                                verticalAlignment: Text.AlignVCenter
                             }
 
-                            ActionButton {
-                                label: "+"
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.spacing
+
+                                ActionButton {
+                                    label: "-"
+                                    enabled: VisorService.selected !== null
+                                    onClicked: VisorService.adjustMonitorScale(VisorService.selected.name, -0.05)
+                                }
+
+                                TextField {
+                                    id: scaleInput
+
+                                    Layout.preferredWidth: 70
+                                    Layout.preferredHeight: 30
+                                    text: VisorService.selected ? String(Math.round(VisorService.monitorScale(VisorService.selected) * 100)) : ""
+                                    enabled: VisorService.selected !== null
+                                    color: Theme.foreground
+                                    selectedTextColor: Theme.background
+                                    selectionColor: Theme.accent
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    validator: IntValidator { bottom: 50; top: 400 }
+                                    background: Rectangle {
+                                        color: Theme.background
+                                        radius: Theme.radius / 3
+                                        border.color: scaleInput.activeFocus ? Theme.accent : Theme.border
+                                        border.width: 1
+                                    }
+                                    onEditingFinished: {
+                                        if (VisorService.selected && acceptableInput) {
+                                            VisorService.setMonitorScale(VisorService.selected.name, parseInt(text, 10) / 100);
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: "%"
+                                    color: Theme.idle
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                ActionButton {
+                                    label: "+"
+                                    enabled: VisorService.selected !== null
+                                    onClicked: VisorService.adjustMonitorScale(VisorService.selected.name, 0.05)
+                                }
+
+                                Item { Layout.fillWidth: true }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 30
+                            spacing: Theme.spacing * 1.5
+
+                            Text {
+                                Layout.preferredWidth: 170
+                                text: "Enabled"
+                                color: Theme.idle
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSize * 0.9
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            Switch {
+                                id: enabledSwitch
+
                                 enabled: VisorService.selected !== null
-                                onClicked: VisorService.adjustMonitorScale(VisorService.selected.name, 0.05)
+                                checked: VisorService.selected ? VisorService.monitorEnabled(VisorService.selected) : false
+                                onToggled: {
+                                    if (VisorService.selected) {
+                                        VisorService.setMonitorEnabled(VisorService.selected.name, checked);
+                                    }
+                                }
+
+                                indicator: Rectangle {
+                                    implicitWidth: 46
+                                    implicitHeight: 24
+                                    x: enabledSwitch.leftPadding
+                                    y: parent.height / 2 - height / 2
+                                    radius: height / 2
+                                    color: enabledSwitch.checked ? Theme.accent : Theme.background
+                                    border.color: enabledSwitch.checked ? Theme.accent : Theme.border
+                                    border.width: 1
+                                    opacity: enabledSwitch.enabled ? 1.0 : 0.45
+
+                                    Rectangle {
+                                        x: enabledSwitch.checked ? parent.width - width - 3 : 3
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 18
+                                        height: 18
+                                        radius: 9
+                                        color: enabledSwitch.checked ? Theme.background : Theme.idle
+
+                                        Behavior on x {
+                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                        }
+                                    }
+                                }
+
+                                contentItem: Item {
+                                    implicitWidth: enabledSwitch.indicator.implicitWidth
+                                    implicitHeight: enabledSwitch.indicator.implicitHeight
+                                }
                             }
                         }
                     }
@@ -453,7 +594,7 @@ FloatingWindow {
 
             Text {
                 Layout.fillWidth: true
-                text: "Drag displays to arrange them  |  select a display to set refresh and scale  |  Enter apply  |  Q/Esc close"
+                text: "Drag displays to arrange them  |  set refresh, scale, and enabled state  |  Enter apply  |  Q/Esc close"
                 color: Theme.idle
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize * 0.9

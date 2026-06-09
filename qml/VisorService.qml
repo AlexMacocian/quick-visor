@@ -67,6 +67,19 @@ QtObject {
         return settings && typeof settings.scale === "number" ? settings.scale : m.scale;
     }
 
+    function monitorEnabled(m) {
+        const settings = monitorSettings[m.name];
+        return settings && typeof settings.enabled === "boolean" ? settings.enabled : !m.disabled;
+    }
+
+    function enabledMonitorCount() {
+        let count = 0;
+        for (let i = 0; i < monitors.length; i++) {
+            if (monitorEnabled(monitors[i])) count++;
+        }
+        return count;
+    }
+
     function parsedMode(mode) {
         const match = String(mode || "").match(/^(\d+)x(\d+)(?:@([\d.]+)(?:Hz)?)?$/);
         if (!match) return null;
@@ -101,6 +114,7 @@ QtObject {
             }
         }
         if (best.length > 0) return best;
+        if (modes.length > 0) return modes[0];
 
         const refresh = typeof m.refreshRate === "number"
             ? "@" + (Math.round(m.refreshRate * 1000) / 1000) : "";
@@ -131,6 +145,23 @@ QtObject {
         monitorSettings = next;
         dirty = true;
         status = "Display scale changed - apply to update Hyprland";
+    }
+
+    function setMonitorEnabled(name, enabled) {
+        if (!enabled && enabledMonitorCount() <= 1) {
+            status = "At least one display must stay enabled";
+            return;
+        }
+
+        const next = Object.assign({}, monitorSettings);
+        const current = Object.assign({}, next[name] || {});
+        current.enabled = enabled;
+        next[name] = current;
+        monitorSettings = next;
+        dirty = true;
+        status = enabled
+            ? "Display enabled - apply to update Hyprland"
+            : "Display disabled - apply to update Hyprland";
     }
 
     function adjustMonitorScale(name, delta) {
@@ -231,7 +262,7 @@ QtObject {
         for (let i = 0; i < monitors.length; i++) {
             const m = monitors[i];
             nextPositions[m.name] = { x: m.x, y: m.y };
-            nextSettings[m.name] = { mode: currentModeString(m), scale: m.scale };
+            nextSettings[m.name] = { mode: currentModeString(m), scale: m.scale, enabled: !m.disabled };
         }
         arrangedPositions = nextPositions;
         monitorSettings = nextSettings;
@@ -274,15 +305,20 @@ QtObject {
     function applyLayout() {
         if (!dirty || monitors.length === 0) return;
 
-        const commands = [];
+        const enableCommands = [];
+        const disableCommands = [];
         for (let i = 0; i < monitors.length; i++) {
             const m = monitors[i];
-            if (m.disabled) continue;
-            const spec = m.name + "," + modeForHyprland(monitorMode(m)) + ","
-                + monitorX(m) + "x" + monitorY(m) + "," + monitorScale(m);
-            commands.push("hyprctl keyword monitor " + shQuote(spec));
+            if (monitorEnabled(m)) {
+                const spec = m.name + "," + modeForHyprland(monitorMode(m)) + ","
+                    + monitorX(m) + "x" + monitorY(m) + "," + monitorScale(m);
+                enableCommands.push("hyprctl keyword monitor " + shQuote(spec));
+            } else {
+                disableCommands.push("hyprctl keyword monitor " + shQuote(m.name + ",disable"));
+            }
         }
 
+        const commands = enableCommands.concat(disableCommands);
         if (commands.length === 0) return;
         status = "Applying layout...";
         applyProc.command = ["sh", "-c", commands.join(" && ")];
@@ -302,7 +338,7 @@ QtObject {
     }
 
     property Process monitorProc: Process {
-        command: ["sh", "-c", "hyprctl monitors -j 2>/dev/null || printf '[]'"]
+        command: ["sh", "-c", "hyprctl monitors all -j 2>/dev/null || printf '[]'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
