@@ -1,0 +1,6 @@
+module QuickVisor
+singleton Config 1.0 Config.qml
+singleton Theme 1.0 Theme.qml
+singleton VisorService 1.0 VisorService.qml
+Visor 1.0 Visor.qml
+ScreenLabel 1.0 ScreenLabel.qml

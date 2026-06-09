@@ -1,0 +1,3 @@
+#!/bin/sh
+# Launches the quick-visor Quickshell instance. Run once at session start.
+exec quickshell -n -p /usr/share/quick-visor/shell.qml "$@"
