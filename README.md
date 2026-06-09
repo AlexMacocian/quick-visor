@@ -4,6 +4,12 @@ A Quickshell-based display manager overlay for Hyprland.
 
 ## Usage
 
+Install from the AUR:
+
+```sh
+paru -S quick-visor
+```
+
 Start the resident Quickshell instance once per session:
 
 ```conf
