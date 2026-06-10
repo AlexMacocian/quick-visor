@@ -100,6 +100,24 @@ QtObject {
         return parsed ? parsed.height : m.height;
     }
 
+    function monitorTransform(m) {
+        return m && typeof m.transform === "number" ? m.transform : 0;
+    }
+
+    function monitorLogicalWidth(m) {
+        const scale = monitorScale(m) || 1;
+        const rotated = (monitorTransform(m) % 2) === 1;
+        const pixels = rotated ? monitorHeight(m) : monitorWidth(m);
+        return Math.round(pixels / scale);
+    }
+
+    function monitorLogicalHeight(m) {
+        const scale = monitorScale(m) || 1;
+        const rotated = (monitorTransform(m) % 2) === 1;
+        const pixels = rotated ? monitorWidth(m) : monitorHeight(m);
+        return Math.round(pixels / scale);
+    }
+
     function currentModeString(m) {
         const modes = Array.isArray(m.availableModes) ? m.availableModes : [];
         let best = "";
@@ -207,8 +225,8 @@ QtObject {
         let bestDx = snapDistance + 1;
         let bestDy = snapDistance + 1;
         const left = x;
-        const width = monitorWidth(monitor);
-        const height = monitorHeight(monitor);
+        const width = monitorLogicalWidth(monitor);
+        const height = monitorLogicalHeight(monitor);
         const right = x + width;
         const top = y;
         const bottom = y + height;
@@ -218,9 +236,9 @@ QtObject {
             if (other.name === name) continue;
 
             const otherLeft = monitorX(other);
-            const otherRight = otherLeft + monitorWidth(other);
+            const otherRight = otherLeft + monitorLogicalWidth(other);
             const otherTop = monitorY(other);
-            const otherBottom = otherTop + monitorHeight(other);
+            const otherBottom = otherTop + monitorLogicalHeight(other);
 
             const xCandidates = [
                 { value: otherLeft, delta: Math.abs(left - otherLeft) },
@@ -284,8 +302,8 @@ QtObject {
             const y = monitorY(m);
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x + monitorWidth(m));
-            maxY = Math.max(maxY, y + monitorHeight(m));
+            maxX = Math.max(maxX, x + monitorLogicalWidth(m));
+            maxY = Math.max(maxY, y + monitorLogicalHeight(m));
         }
 
         return {

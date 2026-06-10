@@ -162,8 +162,8 @@ FloatingWindow {
 
                         x: workspace.originX + (VisorService.monitorX(modelData) - workspace.bounds.minX) * workspace.layoutScale
                         y: workspace.originY + (VisorService.monitorY(modelData) - workspace.bounds.minY) * workspace.layoutScale
-                        width: Math.max(96, VisorService.monitorWidth(modelData) * workspace.layoutScale)
-                        height: Math.max(64, VisorService.monitorHeight(modelData) * workspace.layoutScale)
+                        width: Math.max(96, VisorService.monitorLogicalWidth(modelData) * workspace.layoutScale)
+                        height: Math.max(64, VisorService.monitorLogicalHeight(modelData) * workspace.layoutScale)
                         radius: Theme.radius / 1.5
                         color: dragArea.containsMouse ? Theme.overlayWeak : Theme.background
                         border.color: selected ? Theme.accent : (enabledDisplay ? Theme.border : Theme.warning)
